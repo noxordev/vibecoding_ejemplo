@@ -1,0 +1,8 @@
+# --- Dependencias de la aplicación ---
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+
+# --- Dependencias para ejecutar los tests ---
+pytest==9.1.1
+httpx2==2.13.1

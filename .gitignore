@@ -1,0 +1,10 @@
+# Entorno virtual
+.venv/
+
+# Caché de Python y de pytest
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Base de datos local (se crea automáticamente al arrancar)
+*.db
