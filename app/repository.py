@@ -66,14 +66,16 @@ def actualizar_tarea(
     return _fila_a_tarea(fila) if fila else None
 
 
-def completar_tarea(conexion: sqlite3.Connection, tarea_id: int) -> Tarea | None:
-    """Marca una tarea como completada sin tocar el resto de campos.
+def cambiar_estado_tarea(
+    conexion: sqlite3.Connection, tarea_id: int, completada: bool
+) -> Tarea | None:
+    """Marca una tarea como completada o pendiente sin tocar el resto de campos.
 
     Devuelve la tarea actualizada o None si no existe.
     """
     fila = conexion.execute(
-        "UPDATE tareas SET completada = 1 WHERE id = ? RETURNING *",
-        (tarea_id,),
+        "UPDATE tareas SET completada = ? WHERE id = ? RETURNING *",
+        (int(completada), tarea_id),
     ).fetchone()
     conexion.commit()
     return _fila_a_tarea(fila) if fila else None

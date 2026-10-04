@@ -10,7 +10,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import ORIGENES_CORS
 from app.database import inicializar_db
 from app.routers import tareas
 
@@ -28,6 +30,17 @@ app = FastAPI(
     description="API REST sencilla para gestionar tareas (CRUD) con FastAPI, Pydantic y SQLite.",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# CORS: autoriza a páginas web servidas desde otro dominio o puerto (por ejemplo,
+# un frontend en http://localhost:5173) a llamar a esta API desde el navegador.
+# No se activan credenciales (cookies): los navegadores no las permiten junto con
+# el origen "*" y esta API no las necesita.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGENES_CORS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Registra todas las rutas definidas en app/routers/tareas.py.

@@ -79,7 +79,20 @@ def completar_tarea(tarea_id: int, conexion: ConexionDB) -> Tarea:
     No necesita cuerpo. Si la tarea ya estaba completada, la devuelve sin
     cambios, por lo que se puede llamar varias veces con el mismo resultado.
     """
-    tarea = repository.completar_tarea(conexion, tarea_id)
+    tarea = repository.cambiar_estado_tarea(conexion, tarea_id, completada=True)
+    if tarea is None:
+        raise _error_no_encontrada(tarea_id)
+    return tarea
+
+
+@router.put("/{tarea_id}/desmarcar", summary="Desmarcar una tarea completada")
+def desmarcar_tarea(tarea_id: int, conexion: ConexionDB) -> Tarea:
+    """**PUT /tareas/{tarea_id}/desmarcar** — Vuelve a dejar una tarea como pendiente.
+
+    Es la operación contraria a `/completar`: no necesita cuerpo y, si la tarea
+    ya estaba pendiente, la devuelve sin cambios.
+    """
+    tarea = repository.cambiar_estado_tarea(conexion, tarea_id, completada=False)
     if tarea is None:
         raise _error_no_encontrada(tarea_id)
     return tarea

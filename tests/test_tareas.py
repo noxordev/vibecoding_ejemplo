@@ -119,6 +119,32 @@ def test_completar_tarea_inexistente_devuelve_404(cliente: TestClient) -> None:
     assert respuesta.status_code == 404
 
 
+def test_desmarcar_tarea_completada(cliente: TestClient) -> None:
+    creada = crear(cliente, "Comprar pan", "Integral")
+    cliente.put(f"/tareas/{creada['id']}/completar")
+
+    respuesta = cliente.put(f"/tareas/{creada['id']}/desmarcar")
+
+    assert respuesta.status_code == 200
+    # Vuelve a quedar exactamente como estaba al crearla.
+    assert respuesta.json() == creada
+
+
+def test_desmarcar_tarea_pendiente_no_da_error(cliente: TestClient) -> None:
+    creada = crear(cliente)
+
+    respuesta = cliente.put(f"/tareas/{creada['id']}/desmarcar")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["completada"] is False
+
+
+def test_desmarcar_tarea_inexistente_devuelve_404(cliente: TestClient) -> None:
+    respuesta = cliente.put("/tareas/999/desmarcar")
+
+    assert respuesta.status_code == 404
+
+
 # --- DELETE ---
 
 

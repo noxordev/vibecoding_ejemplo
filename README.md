@@ -2,6 +2,8 @@
 
 API REST sencilla para gestionar una lista de tareas (crear, listar, consultar, actualizar y borrar), construida con **FastAPI**, **Pydantic** y **SQLite** (módulo `sqlite3` de la librería estándar de Python).
 
+Incluye un frontend básico en la carpeta `frontend/` (HTML, Bootstrap y JavaScript) que consume la API desde el navegador.
+
 ## Tecnologías
 
 
@@ -12,6 +14,7 @@ API REST sencilla para gestionar una lista de tareas (crear, listar, consultar, 
 | `sqlite3`                                | Base de datos en un único fichero, sin instalar nada |
 | [Uvicorn](https://www.uvicorn.org/)      | Servidor que ejecuta la aplicación                   |
 | [pytest](https://docs.pytest.org/)       | Tests automáticos                                    |
+| [Bootstrap](https://getbootstrap.com/)   | Estilos del frontend (cargado desde CDN)             |
 
 
 
@@ -20,7 +23,7 @@ API REST sencilla para gestionar una lista de tareas (crear, listar, consultar, 
 
 ```
 vibecoding_ejemplo/
-├── app/
+├── app/                 # Backend (API)
 │   ├── main.py          # Punto de entrada: crea la app y registra los routers
 │   ├── config.py        # Configuración (ruta de la base de datos)
 │   ├── database.py      # Conexión a SQLite y creación de tablas
@@ -28,9 +31,14 @@ vibecoding_ejemplo/
 │   ├── repository.py    # Consultas SQL (acceso a datos)
 │   └── routers/
 │       └── tareas.py    # Endpoints HTTP /tareas
+├── frontend/            # Frontend (se sirve por separado)
+│   ├── index.html       # Página con el formulario y la lista de tareas
+│   └── js/
+│       └── app.js       # Llamadas a la API y pintado de la lista
 ├── tests/
 │   ├── conftest.py      # Configuración de los tests (BD temporal)
-│   └── test_tareas.py   # Tests de los endpoints
+│   ├── test_tareas.py   # Tests de los endpoints
+│   └── test_cors.py     # Tests de la configuración CORS
 ├── pyproject.toml       # Configuración de pytest
 ├── requirements.txt     # Dependencias
 └── README.md
@@ -96,6 +104,29 @@ Una vez arrancado, abre en el navegador:
 
 
 
+## Ejecutar el frontend
+
+Con la API ya arrancada, abre **otra terminal** (con el entorno virtual activado) y sirve la carpeta `frontend/`:
+
+```bash
+python -m http.server 5500 --directory frontend
+```
+
+Después abre **[http://localhost:5500](http://localhost:5500)**. Desde la página puedes:
+
+- **Crear** una tarea con el formulario.
+- **Editar** una tarea: el botón *Editar* carga sus datos en el formulario (la tarea se resalta en la lista). Pulsa *Guardar cambios* para enviarlos o *Cancelar* para descartarlos. Editar no cambia si la tarea está completada o pendiente.
+- **Completar** una tarea pendiente o **desmarcar** una completada para que vuelva a estar pendiente.
+- **Eliminar** una tarea.
+
+Otros detalles:
+
+- El frontend llama a la API en `http://127.0.0.1:8000`. Si la API está en otra dirección, cambia la constante `API_URL` al principio de `frontend/js/app.js`.
+- Si la API no está arrancada, la página muestra un aviso en rojo.
+- También funciona abriendo `index.html` con doble clic, aunque servirlo con `http.server` (o con la extensión *Live Server* del editor) se parece más a cómo funcionaría publicado en una web real.
+
+
+
 ## Endpoints
 
 
@@ -107,6 +138,7 @@ Una vez arrancado, abre en el navegador:
 | `POST`   | `/tareas`                 | Crea una tarea                                             | `201 Created`      |
 | `PUT`    | `/tareas/{id}`            | Reemplaza todos los datos de una tarea                     | `200 OK`           |
 | `PUT`    | `/tareas/{id}/completar`  | Marca una tarea como completada (sin cuerpo)               | `200 OK`           |
+| `PUT`    | `/tareas/{id}/desmarcar`  | Vuelve a dejar una tarea como pendiente (sin cuerpo)       | `200 OK`           |
 | `DELETE` | `/tareas/{id}`            | Elimina una tarea                                          | `204 No Content`   |
 
 
@@ -152,10 +184,10 @@ CREATE TABLE IF NOT EXISTS tareas (
 
 Reglas de la tabla:
 
-- **`id` incremental**: SQLite asigna 1, 2, 3… automáticamente. Con `AUTOINCREMENT`, el id de una tarea borrada nunca se reutiliza.
-- **`titulo` obligatorio** (`NOT NULL`). Los límites de longitud no están en la tabla: los comprueba Pydantic antes de llegar a la base de datos.
-- **`completada` se guarda como `0` o `1`**, porque SQLite no tiene tipo booleano. Vale `0` (pendiente) al crear la tarea, y la API lo devuelve como `false`/`true`.
-- **`fecha_creacion` la pone SQLite** al insertar, en UTC y formato ISO 8601 (`2026-10-02T11:56:21Z`).
+- `id` **incremental**: SQLite asigna 1, 2, 3… automáticamente. Con `AUTOINCREMENT`, el id de una tarea borrada nunca se reutiliza.
+- `titulo` **obligatorio** (`NOT NULL`). Los límites de longitud no están en la tabla: los comprueba Pydantic antes de llegar a la base de datos.
+- `completada` **se guarda como** `0` **o** `1`, porque SQLite no tiene tipo booleano. Vale `0` (pendiente) al crear la tarea, y la API lo devuelve como `false`/`true`.
+- `fecha_creacion` **la pone SQLite** al insertar, en UTC y formato ISO 8601 (`2026-10-02T11:56:21Z`).
 
 Cómo se usa desde el código:
 
@@ -194,6 +226,9 @@ curl -X PUT http://127.0.0.1:8000/tareas/1 \
 # Marcar la tarea 1 como completada (PUT sin cuerpo)
 curl -X PUT http://127.0.0.1:8000/tareas/1/completar
 
+# Desmarcar la tarea 1 para que vuelva a estar pendiente (PUT sin cuerpo)
+curl -X PUT http://127.0.0.1:8000/tareas/1/desmarcar
+
 # Borrar la tarea 1 (DELETE)
 curl -X DELETE http://127.0.0.1:8000/tareas/1
 ```
@@ -222,6 +257,9 @@ Invoke-RestMethod "$base/tareas/1" -Method Put -ContentType "application/json" `
 # Marcar la tarea 1 como completada (PUT sin cuerpo)
 Invoke-RestMethod "$base/tareas/1/completar" -Method Put
 
+# Desmarcar la tarea 1 para que vuelva a estar pendiente (PUT sin cuerpo)
+Invoke-RestMethod "$base/tareas/1/desmarcar" -Method Put
+
 # Borrar la tarea 1 (DELETE)
 Invoke-RestMethod "$base/tareas/1" -Method Delete
 ```
@@ -243,9 +281,27 @@ Los tests usan una base de datos temporal distinta para cada test, así que no m
 ## Configuración
 
 
-| Variable de entorno | Valor por defecto | Descripción                                 |
-| ------------------- | ----------------- | ------------------------------------------- |
-| `TAREAS_DB_PATH`    | `tareas.db`       | Ruta del fichero de la base de datos SQLite |
+| Variable de entorno   | Valor por defecto | Descripción                                                                  |
+| --------------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `TAREAS_DB_PATH`      | `tareas.db`       | Ruta del fichero de la base de datos SQLite                                  |
+| `TAREAS_CORS_ORIGINS` | `*`               | Frontends que pueden llamar a la API, separados por comas (`*` = cualquiera) |
 
 
 Ejemplo en PowerShell: `$env:TAREAS_DB_PATH = "mis_tareas.db"` antes de arrancar el servidor. Si indicas una carpeta, debe existir previamente.
+
+### CORS (uso desde un frontend)
+
+Por seguridad, los navegadores bloquean las peticiones de una web a una API que está en otro origen (otro dominio o puerto), salvo que la API lo autorice. Esta API tiene CORS activado y, por defecto, acepta peticiones desde **cualquier origen**, así que puedes llamarla desde cualquier frontend:
+
+```javascript
+const respuesta = await fetch("http://127.0.0.1:8000/tareas");
+const tareas = await respuesta.json();
+```
+
+En producción es recomendable limitarlo a los dominios de tu frontend:
+
+```powershell
+$env:TAREAS_CORS_ORIGINS = "http://localhost:5173,https://mi-web.com"
+```
+
+CORS solo afecta a los navegadores: herramientas como curl, Postman o PowerShell funcionan igual con cualquier configuración.
